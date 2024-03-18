@@ -36,7 +36,8 @@ export default function ChatApp() {
   const handleSendMessage = async () => {
     try {
       // http://Ride-ALB-1625448229.us-east-1.elb.amazonaws.com:8000/chat
-      const response = await fetch('http://127.0.0.1:8000/chat', {
+      // http://127.0.0.1:8000/chat
+      const response = await fetch('http://Ride-ALB-1625448229.us-east-1.elb.amazonaws.com:8000/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
