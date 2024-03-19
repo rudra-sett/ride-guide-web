@@ -1,5 +1,5 @@
 'use client'
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import ReactMarkdown from 'react-markdown'
 import Select from 'react-select'
 import {modelOptions} from './data.js'
@@ -10,13 +10,15 @@ import {modelOptions} from './data.js'
 export default function ChatApp() {
   const [message, setMessage] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
-  const [modelChoice, setModelChoice] = useState('meta.llama2-13b-chat-v1');
+  const [modelChoice, setModelChoice] = useState('anthropic.claude-3-sonnet-20240229-v1:0');
 
   const [isClearable, setIsClearable] = useState(false);
   const [isSearchable, setIsSearchable] = useState(false);
   const [isDisabled, setIsDisabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isRtl, setIsRtl] = useState(false);
+
+  const messageContainer = useRef(null);
 
   const customStyles = {
     control: (provided, state) => ({
@@ -92,9 +94,23 @@ export default function ChatApp() {
     return jsonObjects;
   }
 
+  const onKeyDownHandler = (e) => {
+    if (e.keyCode === 13) {
+      handleSendMessage();
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener("keyup", onKeyDownHandler);
+    return () => document.removeEventListener("keyup", onKeyDownHandler);
+  });
 
   const handleSendMessage = async () => {
     try {
+      setMessage('');
+      if (messageContainer && messageContainer.current) {
+        messageContainer.current.scrollTop = messageContainer.current.scrollHeight;
+      }
       // http://Ride-ALB-1625448229.us-east-1.elb.amazonaws.com:8000/chat
       // http://127.0.0.1:8000/chat
       const response = await fetch('http://Ride-ALB-1625448229.us-east-1.elb.amazonaws.com:8000/chat', {
@@ -136,15 +152,21 @@ export default function ChatApp() {
             { user: message, chatbot: receivedData },
           ]);
           // chatHistory.slice(-1) = { user: message, chatbot: receivedData }
+          if (messageContainer && messageContainer.current) {
+            messageContainer.current.scrollTop = messageContainer.current.scrollHeight;
+          }
 
           // receivedData = ''; // Clear receivedData if you're concatenating inside the loop
+          
         }
 
       }
 
-      setMessage('');
+      
     } catch (error) {
+      setMessage('');
       console.error('Error sending message:', error);
+      alert('Sorry, something has gone horribly wrong!');
     }
   };
 
@@ -161,7 +183,7 @@ export default function ChatApp() {
 
   return (
     <div className="h-screen w-screen flex flex-col p-4">
-      <div className="flex justify-between bg-[#14558f] text-white h-16 p-4">
+      <div className="flex justify-between bg-[#14558f] text-white h-min-16 p-4">
         <ReactMarkdown>{"**The RIDE Assistant**"}</ReactMarkdown>
 
         <Select
@@ -171,7 +193,7 @@ export default function ChatApp() {
           //   container: (state) => 'h-full'
           // }}        
           classNamePrefix="select"
-          defaultValue={modelOptions[2]}
+          defaultValue={modelOptions[1]}
           isDisabled={isDisabled}
           isLoading={isLoading}
           isClearable={isClearable}
@@ -183,7 +205,7 @@ export default function ChatApp() {
           onChange={(choice) => setModelChoice(choice.value)}
         />
       </div>
-      <div className="flex-grow w-full border border-[#DDDDDD] overflow-y-auto">
+      <div className="flex-grow w-full border border-[#DDDDDD] overflow-y-auto" ref={messageContainer}>
         {chatHistory.map((chat, index) => (
           <div key={index} className="">
             <ReactMarkdown className="text-black bg-[#D0DDE9] p-4">
